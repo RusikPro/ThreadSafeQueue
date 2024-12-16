@@ -6,7 +6,6 @@
 #include "IQueue.h"
 #include "QueueImpl.h"
 
-//#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -20,9 +19,8 @@ struct Data : IData
         :   m_pValue( _pValue )
     {}
 
-    _DataT * get () override
-    {
-        return m_pValue;
+    void* get() override {
+        return static_cast<void*>(m_pValue);  // Return as void*
     }
 
     _DataT * m_pValue;

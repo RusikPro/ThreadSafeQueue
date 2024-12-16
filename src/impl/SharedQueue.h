@@ -5,7 +5,6 @@
 
 #include "IQueue.h"
 
-//#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>

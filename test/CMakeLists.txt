@@ -1,115 +1,54 @@
-set( PROJECT_UNIT_TESTS_NAME stress_tests )
+# Set C++ Standard globally for all test targets
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
 
-set(HEADERS
-)
-
-set(SOURCE
-    ../src/impl/QueueImpl.cpp
-    StressTests.cpp
-)
-
+# Boost Setup
 ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
 
-add_executable(${PROJECT_UNIT_TESTS_NAME} ${HEADERS} ${SOURCE})
+# Function to add a test target
+function(add_unit_test TEST_NAME TEST_SOURCES)
+    # Define the executable for the test
+    add_executable(${TEST_NAME} ${TEST_SOURCES})
 
-#set( BOOST_TEST_LOG_LEVEL test_suite )
-set( BOOST_TEST_BUILD_INFO yes )
+    target_include_directories(${TEST_NAME}
+        PRIVATE
+        ${BOOST_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/src/impl
+        ${PROJECT_SOURCE_DIR}/test
+    )
 
-target_include_directories(${PROJECT_UNIT_TESTS_NAME}
-    PRIVATE
-    ${BOOST_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/impl
-    ${PROJECT_SOURCE_DIR}/test
+    target_link_libraries(${TEST_NAME}
+        ${Boost_FILESYSTEM_LIBRARY}
+        ${Boost_SYSTEM_LIBRARY}
+        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+        -lpthread
+    )
+
+    # Register the test
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
+endfunction()
+
+
+# List of Tests: Define test names and source files as separate lists
+set(TEST_NAMES stress_tests correctness_tests performance_tests)
+set(TEST_SOURCES
+    "StressTests.cpp"
+    "SharedQueue.cpp"
+    "PerformanceTests.cpp"
 )
 
-target_link_libraries(${PROJECT_UNIT_TESTS_NAME}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    -lpthread
-)
+# Add tests in a loop
+list(LENGTH TEST_NAMES TEST_COUNT)
+math(EXPR INDEX "${TEST_COUNT} - 1")
 
-set_target_properties(${PROJECT_UNIT_TESTS_NAME}
-    PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-)
+foreach(i RANGE ${INDEX})
+    list(GET TEST_NAMES ${i} TEST_NAME)
+    list(GET TEST_SOURCES ${i} TEST_SOURCE)
 
-add_test(NAME stress COMMAND ${PROJECT_UNIT_TESTS_NAME})
-
-################################################################################
-
-
-
-set( PROJECT_UNIT_TESTS_NAME correctness_tests )
-
-set(SOURCE
-    ../src/impl/QueueImpl.cpp
-    SharedQueue.cpp
-)
-
-add_executable(${PROJECT_UNIT_TESTS_NAME} ${HEADERS} ${SOURCE})
-
-target_include_directories(${PROJECT_UNIT_TESTS_NAME}
-    PRIVATE
-    ${BOOST_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/impl
-    ${PROJECT_SOURCE_DIR}/test
-)
-
-target_link_libraries(${PROJECT_UNIT_TESTS_NAME}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    -lpthread
-)
-
-set_target_properties(${PROJECT_UNIT_TESTS_NAME}
-    PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-)
-
-add_test(NAME correctness COMMAND ${PROJECT_UNIT_TESTS_NAME})
-
-################################################################################
-
-
-
-set( PROJECT_UNIT_TESTS_NAME performance_tests )
-
-set(SOURCE
-    ../src/impl/QueueImpl.cpp
-    PerformanceTests.cpp
-)
-
-add_executable(${PROJECT_UNIT_TESTS_NAME} ${HEADERS} ${SOURCE})
-
-target_include_directories(${PROJECT_UNIT_TESTS_NAME}
-    PRIVATE
-    ${BOOST_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/impl
-    ${PROJECT_SOURCE_DIR}/test
-)
-
-target_link_libraries(${PROJECT_UNIT_TESTS_NAME}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    -lpthread
-)
-
-set_target_properties(${PROJECT_UNIT_TESTS_NAME}
-    PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-)
-
-add_test(NAME performance COMMAND ${PROJECT_UNIT_TESTS_NAME})
-
+    add_unit_test(${TEST_NAME}
+        "${PROJECT_SOURCE_DIR}/src/impl/QueueImpl.cpp;${TEST_SOURCE}"
+    )
+endforeach()

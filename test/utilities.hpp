@@ -23,10 +23,12 @@ inline std::string now_str()
     const long milliseconds = td.total_milliseconds() -
                               ((hours * 3600 + minutes * 60 + seconds) * 1000);
     char buf[40];
-    sprintf(buf, "%02ld:%02ld:%02ld.%03ld",
-        hours, minutes, seconds, milliseconds);
+    // Use snprintf instead of sprintf
+    snprintf(   buf, sizeof(buf), "%02ld:%02ld:%02ld.%03ld",
+                hours, minutes, seconds, milliseconds
+    );
 
-    return buf;
+    return std::string(buf);
 }
 
 /*----------------------------------------------------------------------------*/

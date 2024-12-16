@@ -9,6 +9,7 @@ struct IData
 {
     virtual void * get () = 0;
 
+    virtual ~IData () = default;
 };
 
 struct SharedQueueImpl
