@@ -80,8 +80,12 @@ make
 
 5. Run the tests:
 ```bash
+# All tests:
 ctest
+# Specific test with message level output
+./test/performance_tests --log_level=message
 ```
+
 ---
 
 ### Queue Interface (`IQueue`)
