@@ -82,7 +82,7 @@ make
 ```bash
 ctest
 ```
-
+---
 
 ### Queue Interface (`IQueue`)
 
@@ -104,3 +104,28 @@ The queue interface includes the following methods:
 5. T* dequeue(int timeout_ms)
    - Attempts to dequeue within a timeout.
 ```
+---
+
+## Future Improvements
+
+- Add support for custom queue size limits with dynamic resizing.
+- Implement additional queue policies (e.g., priority queue or stack).
+- Enhance performance for extreme multi-threaded scenarios (spin-locks or lock-free queue).
+- Refactor `test` module for better modularity.
+
+---
+
+## License
+
+This project is licensed under the **MIT License**.
+
+---
+
+## Contributors
+
+- **Ruslan Arkhyryeyev**
+
+Feel free to contribute! Fork the repository and submit pull requests.
+
+---
+
