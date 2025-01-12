@@ -82,3 +82,25 @@ make
 ```bash
 ctest
 ```
+
+
+### Queue Interface (`IQueue`)
+
+The queue interface includes the following methods:
+
+```plaintext
+1. int count() const
+   - Returns the number of items in the queue.
+
+2. void enqueue(T* value)
+   - Enqueues an item (blocks if full).
+
+3. bool enqueue(T* value, int timeout_ms)
+   - Attempts to enqueue within a timeout.
+
+4. T* dequeue()
+   - Dequeues an item (blocks if empty).
+
+5. T* dequeue(int timeout_ms)
+   - Attempts to dequeue within a timeout.
+```
