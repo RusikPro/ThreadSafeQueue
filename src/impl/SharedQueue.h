@@ -35,19 +35,18 @@ private:
 
     struct Node;
 
-    Node * get_tail ();
+    Node * getTail ();
 
 private:
 
-    std::mutex m_headMutex;
+    std::mutex m_mutex;
     std::unique_ptr< Node > m_pHead;
-    std::mutex m_tailMutex;
     mutable std::mutex m_sizeMutex;
     Node * m_pTail;
     std::condition_variable m_pushDataCond;
     std::condition_variable m_popDataCond;
 
-    mutable std::size_t m_currentQueueSizeLockable;
+    mutable std::atomic< std::size_t > m_currentQueueSizeLockable;
     const std::size_t m_queueSize;
 };
 

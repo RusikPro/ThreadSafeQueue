@@ -14,25 +14,6 @@ struct SharedQueue< _T >::Node
 
 /*----------------------------------------------------------------------------*/
 
-class EndScopeNotifier
-{
-public:
-    EndScopeNotifier ( std::condition_variable & _rCond )
-        :   m_rCond( _rCond )
-    {
-    }
-
-    ~EndScopeNotifier ()
-    {
-        m_rCond.notify_one();
-    }
-
-private:
-    std::condition_variable & m_rCond;
-};
-
-/*----------------------------------------------------------------------------*/
-
 template < typename _T >
 SharedQueue< _T >::SharedQueue ( std::size_t _size )
     :   m_pHead( std::make_unique< Node >() )
@@ -54,8 +35,7 @@ SharedQueue< _T >::~SharedQueue ()
 template < typename _T >
 int SharedQueue< _T >::count () const noexcept
 {
-    std::lock_guard< std::mutex > lck( m_sizeMutex );
-    return m_currentQueueSizeLockable;
+    return m_currentQueueSizeLockable.load();
 }
 
 /*----------------------------------------------------------------------------*/
@@ -63,29 +43,23 @@ int SharedQueue< _T >::count () const noexcept
 template < typename _T >
 void SharedQueue< _T >::enqueue ( _T * _pNewValue )
 {
-    {
-        std::unique_lock< std::mutex > lck( m_sizeMutex );
-        if ( m_currentQueueSizeLockable >= m_queueSize )
-        {
-            m_popDataCond.wait( lck, [ & ] {
-                return m_currentQueueSizeLockable < m_queueSize;
-            } );
-        }
-        ++m_currentQueueSizeLockable;
-
-    }
-
     std::unique_ptr< Node > pNewNode( std::make_unique< Node >() );
     {
-        std::lock_guard< decltype( m_tailMutex ) > tailLock( m_tailMutex );
+        std::unique_lock< std::mutex > sizeLock( m_mutex );
+        m_popDataCond.wait( sizeLock, [ this ] ()
+        {
+            return m_currentQueueSizeLockable < m_queueSize;
+        } );
+        ++m_currentQueueSizeLockable;
+
+
         m_pTail->data = _pNewValue;
         Node * const pNewTail = pNewNode.get();
         m_pTail->next = std::move( pNewNode );
         m_pTail = pNewTail;
     }
-    m_headMutex.lock();
+
     m_pushDataCond.notify_one();
-    m_headMutex.unlock();
 }
 
 /*----------------------------------------------------------------------------*/
@@ -95,31 +69,33 @@ bool SharedQueue< _T >::enqueue ( _T * _pNewValue, int _millisecondsTimeout )
 {
     using namespace std::chrono;
 
-    {
-        std::unique_lock< std::mutex > lck( m_sizeMutex );
-        bool notFull = m_popDataCond.wait_for(
-                lck
-            ,   milliseconds( _millisecondsTimeout )
-            ,   [ this ]
-            {
-                return m_currentQueueSizeLockable < m_queueSize;
-            }
-        );
-        if ( !notFull )
-            return false;
-
-        ++m_currentQueueSizeLockable;
-    }
-    EndScopeNotifier notifier( m_pushDataCond );
-
     std::unique_ptr< Node > pNewNode( std::make_unique< Node >() );
     {
-        std::lock_guard< decltype( m_tailMutex ) > tailLock( m_tailMutex );
+        std::unique_lock< std::mutex > sizeLock( m_mutex );
+        bool notFull = m_popDataCond.wait_for(
+                sizeLock
+            ,   milliseconds( _millisecondsTimeout )
+            ,   [ this ] ()
+                {
+                    return m_currentQueueSizeLockable < m_queueSize;
+                }
+        );
+
+        if ( !notFull )
+        {
+            return false;
+        }
+
+        ++m_currentQueueSizeLockable;
+
+        // Update the queue's tail
         m_pTail->data = _pNewValue;
-        Node * const pNewTail = pNewNode.get();
-        m_pTail->next = std::move( pNewNode );
+        Node *const pNewTail = pNewNode.get();
+        m_pTail->next = std::move(pNewNode);
         m_pTail = pNewTail;
     }
+    // Notify one consumer that new data is available
+    m_pushDataCond.notify_one();
     return true;
 }
 
@@ -128,20 +104,18 @@ bool SharedQueue< _T >::enqueue ( _T * _pNewValue, int _millisecondsTimeout )
 template < typename _T >
 _T * SharedQueue< _T >::dequeue ()
 {
-    EndScopeNotifier notifier( m_popDataCond );
-
-    std::unique_lock< std::mutex > headLock( m_headMutex );
-    m_pushDataCond.wait( headLock, [ this ] {
-        return m_pHead.get() != get_tail();
+    std::unique_lock< std::mutex > queueLock( m_mutex );
+    m_pushDataCond.wait( queueLock, [ this ] ()
+    {
+        return m_pHead.get() != getTail(); // Wait until queue is not empty
     } );
 
-    {
-        std::lock_guard< std::mutex > lck( m_sizeMutex );
-        --m_currentQueueSizeLockable;
-    }
+    --m_currentQueueSizeLockable;
 
-    auto pOldHead = std::move( m_pHead );
-    m_pHead = std::move( pOldHead->next );
+    // Remove the head node
+    auto pOldHead = std::move(m_pHead);
+    m_pHead = std::move(pOldHead->next);
+    m_popDataCond.notify_one();
     return pOldHead->data;
 }
 
@@ -150,30 +124,27 @@ _T * SharedQueue< _T >::dequeue ()
 template < typename _T >
 _T * SharedQueue< _T >::dequeue ( int _millisecondsTimeout )
 {
-    EndScopeNotifier notifier( m_popDataCond );
-
     using namespace std::chrono;
 
-    bool popped;
-
-    std::unique_lock< std::mutex > headLock( m_headMutex );
-    popped = m_pushDataCond.wait_for(
-            headLock
+    std::unique_lock<std::mutex> queueLock(m_mutex);
+    bool dequeued = m_pushDataCond.wait_for(
+            queueLock
         ,   milliseconds( _millisecondsTimeout )
-        ,   [ this ]
-        {
-            return m_pHead.get() != get_tail();
-        }
+        ,   [ this ] ()
+            {
+                // Wait until queue is not empty
+                return m_pHead.get() != getTail();
+            }
     );
 
-    if ( !popped )
-        return nullptr;
-
+    if ( !dequeued )
     {
-        std::lock_guard< std::mutex > lck( m_sizeMutex );
-        --m_currentQueueSizeLockable;
+        return nullptr;
     }
 
+    --m_currentQueueSizeLockable;
+
+    // Remove the head node
     auto pOldHead = std::move( m_pHead );
     m_pHead = std::move( pOldHead->next );
     return pOldHead->data;
@@ -182,9 +153,8 @@ _T * SharedQueue< _T >::dequeue ( int _millisecondsTimeout )
 /*----------------------------------------------------------------------------*/
 
 template < typename _T >
-typename SharedQueue< _T >::Node * SharedQueue< _T >::get_tail ()
+typename SharedQueue< _T >::Node * SharedQueue< _T >::getTail ()
 {
-    std::lock_guard< std::mutex > tailLock( m_tailMutex );
     return m_pTail;
 }
 
