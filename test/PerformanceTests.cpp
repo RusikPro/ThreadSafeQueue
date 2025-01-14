@@ -88,8 +88,6 @@ struct Fixture
                 ).count()
             );
         }
-
-        BOOST_TEST_MESSAGE( "Measurements number: " << measurementsCount );
     }
 
     void testMultipleElementsPerThread (
@@ -215,9 +213,18 @@ BOOST_AUTO_TEST_CASE( OneThreadMultipleElements__QueueSizeEqual__1_2_2 )
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
+BOOST_AUTO_TEST_CASE( PImpl__0 )
+{
+    BOOST_TEST_MESSAGE( "\nPImpl tests" );
+}
+
 BOOST_AUTO_TEST_CASE( PImpl__MultipleThreadsOneElement__2_1 )
 {
+    constexpr int queueSize = 100;
+
     setQueue( QueueFactory::createSharedQueueWithPImpl< int >( 100 ) );
+
+    BOOST_TEST_MESSAGE( "Queue size: " << queueSize );
 
     testOneElementPerThread();
 

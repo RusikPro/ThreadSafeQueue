@@ -41,7 +41,6 @@ private:
 
     std::mutex m_mutex;
     std::unique_ptr< Node > m_pHead;
-    mutable std::mutex m_sizeMutex;
     Node * m_pTail;
     std::condition_variable m_pushDataCond;
     std::condition_variable m_popDataCond;
