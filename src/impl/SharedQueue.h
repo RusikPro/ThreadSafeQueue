@@ -39,11 +39,14 @@ private:
 
 private:
 
-    std::mutex m_mutex;
+    mutable std::mutex m_headMutex;
+    mutable std::mutex m_tailMutex;
+
+    std::condition_variable m_notEmptyCond;
+    std::condition_variable m_notFullCond;
+
     std::unique_ptr< Node > m_pHead;
     Node * m_pTail;
-    std::condition_variable m_pushDataCond;
-    std::condition_variable m_popDataCond;
 
     mutable std::atomic< std::size_t > m_currentQueueSizeLockable;
     const std::size_t m_queueSize;
