@@ -115,7 +115,9 @@ _T * SharedQueue< _T >::dequeue ()
     // Remove the head node
     auto pOldHead = std::move(m_pHead);
     m_pHead = std::move(pOldHead->next);
+
     m_popDataCond.notify_one();
+
     return pOldHead->data;
 }
 
@@ -147,6 +149,9 @@ _T * SharedQueue< _T >::dequeue ( int _millisecondsTimeout )
     // Remove the head node
     auto pOldHead = std::move( m_pHead );
     m_pHead = std::move( pOldHead->next );
+
+    m_popDataCond.notify_one();
+
     return pOldHead->data;
 }
 
