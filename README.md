@@ -84,6 +84,8 @@ make
 ctest
 # Specific test with message level output
 ./test/performance_tests --log_level=message
+# Output with test names and messages
+./test/performance_tests --log_level=unit_scope
 ```
 
 ---
