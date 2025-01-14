@@ -9,7 +9,7 @@ template < typename _T >
 struct SharedQueue< _T >::Node
 {
     _T * data;
-    std::unique_ptr<Node> next;
+    std::unique_ptr< Node > next;
 };
 
 /*----------------------------------------------------------------------------*/

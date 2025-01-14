@@ -3,6 +3,15 @@
 
 /*----------------------------------------------------------------------------*/
 
+/**
+ * @class IQueue
+ *
+ * @brief An interface for a thread-safe queue of pointers to T.
+ *
+ * Please note: The queue DOES NOT own the pointers to T. It is the caller's
+ * responsibility to ensure memory is allocated before enqueueing and freed
+ * after dequeueing (or when no longer needed).
+ */
 template < typename _T >
 class IQueue
 {
